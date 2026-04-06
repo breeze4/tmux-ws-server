@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
 import { CanvasAddon } from '@xterm/addon-canvas';
 import '@xterm/xterm/css/xterm.css';
+import TerminalSession from '../TerminalSession';
 
 const IS_TOUCH = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
@@ -18,15 +19,6 @@ const CTRL_KEYS = [
   { label: 'Enter', char: '\r' },
 ];
 
-const INPUT = 0;
-const OUTPUT = 1;
-const RESIZE = 2;
-const PAUSE = 3;
-const RESUME = 4;
-
-const HIGH_WATER = 100 * 1024;
-const LOW_WATER = 10 * 1024;
-
 interface Props {
   sessionName: string | null;
   onDetach?: () => void;
@@ -34,17 +26,11 @@ interface Props {
 
 export default function TerminalPane({ sessionName, onDetach }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const wsRef = useRef<WebSocket | null>(null);
+  const sessionRef = useRef<TerminalSession | null>(null);
   const [disconnected, setDisconnected] = useState(false);
 
   const sendCtrl = useCallback((char: string) => {
-    const ws = wsRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    const payload = new TextEncoder().encode(char);
-    const msg = new Uint8Array(1 + payload.length);
-    msg[0] = INPUT;
-    msg.set(payload, 1);
-    ws.send(msg.buffer);
+    sessionRef.current?.sendInput(char);
   }, []);
 
   const reconnect = useCallback(() => setDisconnected(false), []);
@@ -77,73 +63,30 @@ export default function TerminalPane({ sessionName, onDetach }: Props) {
 
     terminal.open(container);
 
-    // Helper to build and send a binary protocol message
-    function sendMessage(ws: WebSocket, cmd: number, data?: string) {
-      if (ws.readyState !== WebSocket.OPEN) return;
-      const payload = data ? new TextEncoder().encode(data) : new Uint8Array(0);
-      const msg = new Uint8Array(1 + payload.length);
-      msg[0] = cmd;
-      msg.set(payload, 1);
-      ws.send(msg.buffer);
-    }
-
-    // Delay WebSocket connection so the container has final dimensions.
-    // This way the first resize message sent to the PTY has the correct cols/rows.
-    let ws: WebSocket | null = null;
-    let bytesInFlight = 0;
-    let paused = false;
     let disposed = false;
 
+    const session = new TerminalSession({
+      sessionName,
+      onOutput: (data, done) => terminal.write(data, done),
+      onEnd: () => {
+        if (!disposed) setDisconnected(true);
+      },
+    });
+    sessionRef.current = session;
+
+    // Delay WebSocket connection so the container has final dimensions.
     const connectTimer = setTimeout(() => {
       if (disposed) return;
       fitAddon.fit();
-
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      ws = new WebSocket(
-        `${protocol}//${window.location.host}/ws/terminal?session=${encodeURIComponent(sessionName)}`
-      );
-      ws.binaryType = 'arraybuffer';
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        fitAddon.fit();
-        const { cols, rows } = terminal;
-        sendMessage(ws!, RESIZE, JSON.stringify({ cols, rows }));
-      };
-
-      ws.onmessage = (event: MessageEvent) => {
-        const buf = new Uint8Array(event.data as ArrayBuffer);
-        if (buf.length === 0) return;
-        if (buf[0] === OUTPUT) {
-          const data = buf.slice(1);
-          bytesInFlight += data.length;
-
-          if (!paused && bytesInFlight > HIGH_WATER) {
-            paused = true;
-            sendMessage(ws!, PAUSE);
-          }
-
-          terminal.write(data, () => {
-            bytesInFlight -= data.length;
-            if (paused && bytesInFlight < LOW_WATER) {
-              paused = false;
-              if (ws) sendMessage(ws, RESUME);
-            }
-          });
-        }
-      };
-
-      ws.onclose = () => {
-        if (!disposed) setDisconnected(true);
-      };
+      session.connect(terminal.cols, terminal.rows);
     }, 150);
 
     const onDataDisposable = terminal.onData((data: string) => {
-      if (ws) sendMessage(ws, INPUT, data);
+      session.sendInput(data);
     });
 
     const onResizeDisposable = terminal.onResize(({ cols, rows }) => {
-      if (ws) sendMessage(ws, RESIZE, JSON.stringify({ cols, rows }));
+      session.resize(cols, rows);
     });
 
     // ResizeObserver with debounce
@@ -161,11 +104,8 @@ export default function TerminalPane({ sessionName, onDetach }: Props) {
       if (resizeTimer) clearTimeout(resizeTimer);
       onDataDisposable.dispose();
       onResizeDisposable.dispose();
-      if (ws) {
-        ws.onclose = null; // prevent onDisconnect firing during cleanup
-        ws.close();
-      }
-      wsRef.current = null;
+      session.dispose();
+      sessionRef.current = null;
       terminal.dispose();
     };
   }, [sessionName, disconnected]);

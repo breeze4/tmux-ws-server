@@ -1,3 +1,5 @@
+import { hints, hintTooltip } from '../tmuxHints';
+
 interface Props {
   layout: 1 | 2 | 4;
   onLayoutChange: (layout: 1 | 2 | 4) => void;
@@ -5,10 +7,10 @@ interface Props {
   onToggleSidebar: () => void;
 }
 
-const layouts: { value: 1 | 2 | 4; label: string }[] = [
-  { value: 1, label: '1' },
-  { value: 2, label: '2' },
-  { value: 4, label: '4' },
+const layouts: { value: 1 | 2 | 4; label: string; tooltip: string }[] = [
+  { value: 1, label: '1', tooltip: '1-pane layout (single pane)\n\nTmux: Prefix z  (zoom pane to fullscreen)' },
+  { value: 2, label: '2', tooltip: `2-pane layout\n\n${hintTooltip(hints.splitVertical)}` },
+  { value: 4, label: '4', tooltip: `4-pane layout\n\nTmux: Prefix %  then  Prefix "  on each half` },
 ];
 
 export default function TopBar({ layout, onLayoutChange, sidebarOpen, onToggleSidebar }: Props) {
@@ -29,7 +31,7 @@ export default function TopBar({ layout, onLayoutChange, sidebarOpen, onToggleSi
               ...(layout === l.value ? styles.toggleBtnActive : {}),
             }}
             onClick={() => onLayoutChange(l.value)}
-            title={`${l.value}-pane layout`}
+            title={l.tooltip}
           >
             {l.label}
           </button>

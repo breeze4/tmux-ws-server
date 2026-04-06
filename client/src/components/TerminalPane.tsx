@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
@@ -29,12 +29,13 @@ const LOW_WATER = 10 * 1024;
 
 interface Props {
   sessionName: string | null;
-  onDisconnect?: () => void;
+  onDetach?: () => void;
 }
 
-export default function TerminalPane({ sessionName, onDisconnect }: Props) {
+export default function TerminalPane({ sessionName, onDetach }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const [disconnected, setDisconnected] = useState(false);
 
   const sendCtrl = useCallback((char: string) => {
     const ws = wsRef.current;
@@ -46,8 +47,10 @@ export default function TerminalPane({ sessionName, onDisconnect }: Props) {
     ws.send(msg.buffer);
   }, []);
 
+  const reconnect = useCallback(() => setDisconnected(false), []);
+
   useEffect(() => {
-    if (!sessionName || !containerRef.current) return;
+    if (!sessionName || !containerRef.current || disconnected) return;
 
     const container = containerRef.current;
     const fontSize = IS_TOUCH ? 12 : 14;
@@ -131,7 +134,7 @@ export default function TerminalPane({ sessionName, onDisconnect }: Props) {
       };
 
       ws.onclose = () => {
-        if (!disposed) onDisconnect?.();
+        if (!disposed) setDisconnected(true);
       };
     }, 150);
 
@@ -165,10 +168,28 @@ export default function TerminalPane({ sessionName, onDisconnect }: Props) {
       wsRef.current = null;
       terminal.dispose();
     };
-  }, [sessionName]);
+  }, [sessionName, disconnected]);
 
   if (!sessionName) {
     return <div style={{ color: '#666', padding: 20 }}>No session selected</div>;
+  }
+
+  if (disconnected) {
+    return (
+      <div style={{ color: '#888', padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, fontFamily: 'system-ui, sans-serif', fontSize: 13 }}>
+        <div>Disconnected from <strong style={{ color: '#c8c8d0' }}>{sessionName}</strong></div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={reconnect} style={{ background: '#2a5a2a', color: '#e0e0e0', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}>
+            Reconnect
+          </button>
+          {onDetach && (
+            <button onClick={onDetach} style={{ background: '#333', color: '#c8c8d0', border: '1px solid #555', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}>
+              Detach
+            </button>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -52,7 +52,7 @@ export default function PaneLayout({
               <TerminalPane
                 key={sessionName}
                 sessionName={sessionName}
-                onDisconnect={() => onPaneSessionChange(index, null)}
+                onDetach={() => onPaneSessionChange(index, null)}
               />
             ) : (
               <EmptyPane

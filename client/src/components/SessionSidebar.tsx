@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useSessions, type Session } from '../hooks/useSessions';
+import { hints, hintTooltip, cheatsheet } from '../tmuxHints';
 
 interface Props {
   activeSession: string | null;
@@ -13,6 +14,7 @@ export default function SessionSidebar({ activeSession, onAttach, onDetach }: Pr
   const [editingSession, setEditingSession] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
+  const [cheatsheetOpen, setCheatsheetOpen] = useState(false);
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
@@ -83,7 +85,7 @@ export default function SessionSidebar({ activeSession, onAttach, onDetach }: Pr
               <div
                 style={styles.itemMain}
                 onClick={() => onAttach(s.name)}
-                title={`Click to attach to "${s.name}"`}
+                title={hintTooltip(hints.attachSession)}
               >
                 {editingSession === s.name ? (
                   <input
@@ -107,14 +109,14 @@ export default function SessionSidebar({ activeSession, onAttach, onDetach }: Pr
                 <button
                   style={styles.actionBtn}
                   onClick={(e) => { e.stopPropagation(); startRename(s); }}
-                  title="Rename"
+                  title={hintTooltip(hints.renameSession)}
                 >
                   ✎
                 </button>
                 <button
                   style={styles.actionBtn}
                   onClick={(e) => { e.stopPropagation(); handleKill(s.name); }}
-                  title="Kill session"
+                  title={hintTooltip(hints.killSession)}
                 >
                   ✕
                 </button>
@@ -125,8 +127,9 @@ export default function SessionSidebar({ activeSession, onAttach, onDetach }: Pr
       </div>
 
       {activeSession && (
-        <button style={styles.detachBtn} onClick={onDetach}>
+        <button style={styles.detachBtn} onClick={onDetach} title={hintTooltip(hints.detachSession)}>
           Detach
+          <span style={styles.hintInline}>Prefix d</span>
         </button>
       )}
 
@@ -137,10 +140,37 @@ export default function SessionSidebar({ activeSession, onAttach, onDetach }: Pr
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Session name (optional)"
         />
-        <button style={styles.createBtn} type="submit">
+        <button style={styles.createBtn} type="submit" title={hintTooltip(hints.newSession)}>
           + New
         </button>
       </form>
+
+      {/* Collapsible tmux cheatsheet */}
+      <div style={styles.cheatsheetContainer}>
+        <button
+          style={styles.cheatsheetToggle}
+          onClick={() => setCheatsheetOpen(!cheatsheetOpen)}
+        >
+          <span>Tmux Shortcuts</span>
+          <span>{cheatsheetOpen ? '▾' : '▸'}</span>
+        </button>
+        {cheatsheetOpen && (
+          <div style={styles.cheatsheetBody}>
+            <div style={styles.cheatsheetNote}>Prefix = Ctrl+b</div>
+            {cheatsheet.map((cat) => (
+              <div key={cat.title}>
+                <div style={styles.cheatsheetCat}>{cat.title}</div>
+                {cat.items.map((item) => (
+                  <div key={item.key} style={styles.cheatsheetRow} title={item.cli}>
+                    <span style={styles.cheatsheetKey}>{item.key}</span>
+                    <span style={styles.cheatsheetDesc}>{item.desc}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -266,6 +296,71 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '4px 10px',
     cursor: 'pointer',
     fontSize: 13,
+    whiteSpace: 'nowrap',
+  },
+  hintInline: {
+    marginLeft: 8,
+    fontSize: 11,
+    color: '#666',
+    fontFamily: 'monospace',
+  },
+  cheatsheetContainer: {
+    borderTop: '1px solid #333',
+  },
+  cheatsheetToggle: {
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '8px 16px',
+    background: 'none',
+    border: 'none',
+    color: '#888',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 600,
+  },
+  cheatsheetBody: {
+    padding: '0 12px 8px',
+    maxHeight: 300,
+    overflowY: 'auto',
+  },
+  cheatsheetNote: {
+    fontSize: 11,
+    color: '#666',
+    fontFamily: 'monospace',
+    marginBottom: 6,
+    padding: '2px 4px',
+    background: '#111',
+    borderRadius: 3,
+    textAlign: 'center' as const,
+  },
+  cheatsheetCat: {
+    fontSize: 11,
+    fontWeight: 600,
+    color: '#5a8aba',
+    marginTop: 6,
+    marginBottom: 2,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+  },
+  cheatsheetRow: {
+    display: 'flex',
+    gap: 8,
+    padding: '2px 0',
+    fontSize: 11,
+    lineHeight: '16px',
+  },
+  cheatsheetKey: {
+    fontFamily: 'monospace',
+    color: '#c8c8d0',
+    flexShrink: 0,
+    minWidth: 90,
+  },
+  cheatsheetDesc: {
+    color: '#777',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
 };

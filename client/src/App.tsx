@@ -10,6 +10,7 @@ const STORAGE_KEY = 'beebaby-pane-layout';
 interface PersistedState {
   layout: Layout;
   panes: (string | null)[];
+  sidebarOpen?: boolean;
 }
 
 function loadState(): PersistedState {
@@ -19,10 +20,12 @@ function loadState(): PersistedState {
       const parsed = JSON.parse(raw);
       if (
         [1, 2, 4].includes(parsed.layout) &&
-        Array.isArray(parsed.panes) &&
-        parsed.panes.length === parsed.layout
+        Array.isArray(parsed.panes)
       ) {
-        return parsed as PersistedState;
+        // Normalize panes array to match layout length
+        const panes = parsed.panes.slice(0, parsed.layout) as (string | null)[];
+        while (panes.length < parsed.layout) panes.push(null);
+        return { layout: parsed.layout, panes, sidebarOpen: parsed.sidebarOpen };
       }
     }
   } catch {
@@ -39,12 +42,15 @@ export default function App() {
   const [layout, setLayout] = useState<Layout>(() => loadState().layout);
   const [panes, setPanes] = useState<(string | null)[]>(() => loadState().panes);
   const [focusedPane, setFocusedPane] = useState(0);
-  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 600);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    const saved = loadState().sidebarOpen;
+    return saved !== undefined ? saved : window.innerWidth > 600;
+  });
 
   // Persist on change
   useEffect(() => {
-    saveState({ layout, panes });
-  }, [layout, panes]);
+    saveState({ layout, panes, sidebarOpen });
+  }, [layout, panes, sidebarOpen]);
 
   const handleLayoutChange = useCallback((newLayout: Layout) => {
     setLayout(newLayout);

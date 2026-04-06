@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSessions } from '../hooks/useSessions';
+import { hints, hintTooltip } from '../tmuxHints';
 
 interface Props {
   onSelectSession: (name: string) => void;
@@ -23,6 +24,9 @@ export default function EmptyPane({ onSelectSession }: Props) {
   return (
     <div style={styles.container}>
       <div style={styles.prompt}>Select a session</div>
+      <div style={{ fontSize: 11, color: '#555', marginBottom: 8, fontFamily: 'monospace' }}>
+        tmux attach -t &lt;name&gt; &nbsp;|&nbsp; Prefix s
+      </div>
       {loading && sessions.length === 0 && (
         <div style={styles.muted}>Loading sessions...</div>
       )}
@@ -42,6 +46,7 @@ export default function EmptyPane({ onSelectSession }: Props) {
         style={styles.createBtn}
         onClick={handleCreate}
         disabled={creating}
+        title={hintTooltip(hints.newSession)}
       >
         {creating ? 'Creating...' : '+ New Session'}
       </button>

@@ -1,0 +1,3 @@
+I have a private VPN (with Tailscale) for my linux mini PC called beebaby. I want to be able to self-host personal apps, assistants, etc and be able to access them from anywhere. This works well with Tailscale. Now what I really want is a browser interface to beebaby that lets me use a terminal (and be able to launch Claude Code, manage the system, etc). I think tmux would be a good use, but I want to be able to do this through the web.
+
+So it would be a web page (beebaby:8001/terminal or something), no auth required the VPN takes care of that. I'd be able to manage tmux sessions through this web app and jump into sessions from anywhere that I can access my tailscale VPN.

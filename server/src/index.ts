@@ -5,6 +5,8 @@ import fs from 'fs';
 import { WebSocketServer } from 'ws';
 import { handleTerminalConnection, getActivePtys } from './terminal.js';
 import { sessionRoutes } from './sessions.js';
+import swaggerUi from 'swagger-ui-express';
+import { openApiDocument } from './openapi.js';
 
 const PORT = parseInt(process.env.PORT ?? '8001', 10);
 
@@ -16,6 +18,14 @@ app.use('/api', sessionRoutes);
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
+
+// API docs: hand-authored OpenAPI 3 spec + Swagger UI. Mounted before the
+// static handler + SPA catch-all below so the fallback to index.html does not
+// swallow them.
+app.get('/openapi.json', (_req, res) => {
+  res.json(openApiDocument);
+});
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
 // Production static serving
 const publicDir = path.join(import.meta.dirname, '../public');

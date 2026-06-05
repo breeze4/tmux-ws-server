@@ -11,10 +11,12 @@
   "dependencies": {
     "express": "^5.1.0",
     "node-pty": "^1.0.0",
+    "swagger-ui-express": "^5.0.1",
     "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
+    "@types/swagger-ui-express": "^4.1.8",
     "@types/ws": "^8.18.0",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0",

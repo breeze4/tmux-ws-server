@@ -1,0 +1,9 @@
+node_modules/
+.claude/
+.local/
+dist/
+server/public/
+server/dist/
+*.js.map
+*.tsbuildinfo
+client/src/**/*.js

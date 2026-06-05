@@ -1,0 +1,64 @@
+# cicd-router deploy config for BeeBaby Admin.
+version: 1
+
+identity:
+  id: beebaby-admin
+  name: BeeBaby Admin
+  repo_path: /Users/breeze/dev/beebaby-admin
+
+eligibility:
+  auto_deploy: true
+  branches:
+    - main
+  refs:
+    - refs/heads/main
+
+gates:
+  dependency_path:
+    prepend:
+      - node_modules/.bin
+  stages:
+    - name: project-gates
+      command: bash scripts/cicd-router-gates.sh
+
+deploy:
+  enabled: true
+  host: beebaby
+  directory: dev/beebaby-admin
+  source_subdir: .
+  service_unit: beebaby-admin.service
+  port: 8001
+  rsync:
+    excludes:
+      - .git/
+      - .local/
+      - node_modules/
+      - dist/
+      - server/dist/
+      - server/public/
+  remote_steps:
+    - name: bootstrap
+      command: bash deploy/remote-bootstrap.sh
+  restart_units:
+    - beebaby-admin.service
+  env_files: []
+
+smoke:
+  attempts: 5
+  delay_seconds: 2.0
+  checks:
+    - name: api-health
+      kind: http
+      port: 8001
+      path: /api/health
+      expected_status: 200
+
+publisher:
+  host: beebaby
+  store_path: cicd-router/results.sqlite3
+  logs_path: cicd-router/logs
+  console_port: 8086
+
+self_deploy:
+  is_router: false
+  update_command:

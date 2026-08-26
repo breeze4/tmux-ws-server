@@ -44,6 +44,12 @@ gates:
     # The same script cicd-router runs, at the same path, unchanged. Keeping the
     # command identical is what makes a same-SHA comparison between the two
     # deployers mean anything.
+    # This gate runs more on Beebaby than it did on the operator's Mac. The
+    # script runs the tmux-backed integration tests only where tmux is
+    # installed, and the Mac has none, so cicd-router skipped them on every run
+    # while Factory runs them. Both deployers pass; Factory's coverage is
+    # strictly larger. The first Factory run is what found that importing the
+    # server bound port 8001, the port the live service holds.
     - name: project-gates
       command: bash scripts/cicd-router-gates.sh
       cwd: .

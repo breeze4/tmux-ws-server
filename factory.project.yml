@@ -19,6 +19,13 @@
 #
 # The GitHub repository is `tmux-ws-server`. The project kept its earlier name
 # and the repository did not, so the two differ on purpose.
+#
+# Who deploys this commit is not decided here. Factory's registry record for
+# this project, `config/projects/beebaby-admin.yaml` in the factory repository,
+# carries an `authority` switch that reads `cicd_router` or `factory`, and
+# Factory refuses to deploy a project whose record says `cicd_router` whatever
+# GitHub reports. That is the migration switch, and it is deliberately
+# somewhere a repository cannot set for itself.
 
 version: 1
 

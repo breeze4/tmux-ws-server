@@ -73,6 +73,15 @@ function shutdown() {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-server.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-});
+// Importing this module must not bind a port. The tests import `app` and
+// `server` and then listen on a port of their own, and until this was guarded
+// the import bound PORT first — which is 8001, the port the running service
+// already holds. On a machine with the service up, every test file raised an
+// uncaught EADDRINUSE and the suite exited 1 with all of its tests passing.
+// Under vitest the tests own the listener; everywhere else this is the entry
+// point and it listens as before.
+if (!process.env.VITEST) {
+  server.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
+  });
+}

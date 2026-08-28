@@ -30,10 +30,11 @@ pnpm start
 
 ## Deployment
 
-Factory deploys each pushed `main` commit that passes the project gates. The
-`factory.project.yml` file is the active deployment contract. Factory runs the
-retained `scripts/cicd-router-gates.sh` gate, restarts
-`beebaby-admin.service`, and examines `/api/health` on port `8001`.
+A local commit to `main` creates a durable Factory deployment intent. The
+Factory runner publishes the exact commit to GitHub and asks Factory to record
+the deployment. The `factory.project.yml` file is the active deployment
+contract. Factory runs `scripts/cicd-router-gates.sh` as the project gate. It
+restarts `beebaby-admin.service` and examines `/api/health` on port `8001`.
 
 The `cicd-router.project.yml` file is audit and recovery data. It does not
 control deployments.

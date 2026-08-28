@@ -10,16 +10,21 @@ Web-based tmux session manager.
 
 ## Commands
 
-- `npm run dev` — run server + client in dev mode
-- `npm run build` — build server then client (output: server/dist, server/public)
-- `npm test` — run server tests (vitest)
+- `pnpm run dev`: Run the server and client in development mode.
+- `pnpm run build`: Build the server and client.
+- `pnpm test`: Run the server tests.
 
-## Deploy
+The build output is in `server/dist/` and `server/public/`.
 
-After a clean build and test run, deploy to beebaby:
+## Deployment
 
-```
-npm run build && npm test && bash deploy/deploy.sh
-```
+Factory owns deployment. A push to `main` sends the exact commit to Factory.
+Factory runs the retained `scripts/cicd-router-gates.sh` gate, copies the
+source, runs `deploy/remote-bootstrap.sh`, and restarts
+`beebaby-admin.service`.
 
-This rsyncs to `beebaby:~/dev/beebaby-admin`, installs deps, builds, and restarts the systemd user service (`beebaby-admin.service`) on port 8001.
+The `factory.project.yml` file is the active contract. The
+`cicd-router.project.yml` file is audit and recovery data only.
+
+Before you push, run the build and tests. After Factory deploys the commit,
+examine `http://beebaby:8001/api/health`.

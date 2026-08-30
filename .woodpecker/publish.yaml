@@ -9,7 +9,6 @@ steps:
     settings:
       build_args:
         VCS_REF: ${CI_COMMIT_SHA}
-        BUILD_DATE: ${CI_PIPELINE_CREATED}
       dockerfile: Dockerfile
       platforms: linux/amd64
       registry: https://ghcr.io

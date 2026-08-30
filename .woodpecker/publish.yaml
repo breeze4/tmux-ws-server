@@ -1,0 +1,20 @@
+when:
+  - event: push
+    branch: main
+
+steps:
+  publish-image:
+    image: woodpeckerci/plugin-docker-buildx@sha256:ccb9072d4f51dc6ec106b364c6806c6647c93c59594f2d10d121f94b0566591f
+    privileged: true
+    settings:
+      build_args:
+        VCS_REF: ${CI_COMMIT_SHA}
+        BUILD_DATE: ${CI_PIPELINE_CREATED}
+      dockerfile: Dockerfile
+      platforms: linux/amd64
+      registry: https://ghcr.io
+      repo: ghcr.io/breeze4/tmux-ws-server
+      tags: ${CI_COMMIT_SHA}
+      username: breeze4
+      password:
+        from_secret: ghcr_token

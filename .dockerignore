@@ -1,0 +1,17 @@
+.git
+.vscode
+.claude
+node_modules
+client/node_modules
+server/node_modules
+dist
+server/dist
+server/public
+*.log
+.DS_Store
+docs
+deploy
+factory.project.yml
+cicd-router.project.yml
+package-lock.json
+scripts

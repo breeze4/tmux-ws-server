@@ -3,10 +3,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-npm ci
+pnpm install --frozen-lockfile
 if command -v tmux >/dev/null 2>&1; then
-  npm test
+  pnpm test
 else
   echo "Skipping tmux-backed integration tests: tmux is not installed on this gate host."
 fi
-npm run build
+pnpm run build

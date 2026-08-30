@@ -1,0 +1,9 @@
+when:
+  - event: [push, pull_request]
+
+steps:
+  beebaby-admin-gates:
+    image: node:22.17.1-bookworm-slim@sha256:2fa754a9ba4d7adbd2a51d182eaabbe355c82b673624035a38c0d42b08724854
+    commands:
+      - corepack enable
+      - bash scripts/cicd-router-gates.sh

@@ -4,6 +4,11 @@ import { IncomingMessage } from 'http';
 import { INPUT, OUTPUT, RESIZE, PAUSE, RESUME } from './protocol.js';
 
 const activePtys = new Set<pty.IPty>();
+const tmuxSocket = process.env.TMUX_SOCKET;
+
+function tmuxArgs(args: string[]): string[] {
+  return tmuxSocket ? ['-S', tmuxSocket, ...args] : args;
+}
 
 export function getActivePtys(): Set<pty.IPty> {
   return activePtys;
@@ -20,7 +25,7 @@ export function handleTerminalConnection(ws: WebSocket, req: IncomingMessage): v
   function spawnPty(cols: number, rows: number) {
     if (term) return; // already spawned
 
-    term = pty.spawn('tmux', ['new-session', '-A', '-s', sessionName], {
+    term = pty.spawn('tmux', tmuxArgs(['new-session', '-A', '-s', sessionName]), {
       name: 'xterm-256color',
       cols,
       rows,

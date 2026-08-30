@@ -18,13 +18,15 @@ The build output is in `server/dist/` and `server/public/`.
 
 ## Deployment
 
-Factory owns deployment. A push to `main` sends the exact commit to Factory.
-Factory runs the retained `scripts/cicd-router-gates.sh` gate, copies the
-source, runs `deploy/remote-bootstrap.sh`, and restarts
-`beebaby-admin.service`.
+Factory owns the active source deployment during the container bridge. A push
+to `main` sends the exact commit to Factory. Factory runs the retained
+`scripts/cicd-router-gates.sh` gate, copies the source, runs
+`deploy/remote-bootstrap.sh`, and restarts `beebaby-admin.service`.
 
-The `factory.project.yml` file is the active contract. The
-`cicd-router.project.yml` file is audit and recovery data only.
+Woodpecker checks each push and pull request. A `main` push publishes an
+immutable container image, but does not deploy it during this bridge. The
+container mounts only the host tmux socket. It does not mount a host directory,
+an SSH directory, or the Docker socket.
 
-Before you push, run the build and tests. After Factory deploys the commit,
-examine `http://beebaby:8001/api/health`.
+Before you push, run `bash scripts/cicd-router-gates.sh`. After Factory deploys
+the commit, examine `http://beebaby:8001/api/health`.

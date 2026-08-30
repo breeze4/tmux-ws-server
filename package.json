@@ -1,15 +1,16 @@
 {
   "name": "beebaby-admin",
   "private": true,
+  "packageManager": "pnpm@11.5.1",
   "workspaces": [
     "client",
     "server"
   ],
   "scripts": {
-    "dev": "concurrently -n server,client -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
-    "build": "npm run build -w server && npm run build -w client",
+    "dev": "concurrently -n server,client -c blue,green \"pnpm --filter beebaby-server run dev\" \"pnpm --filter beebaby-client run dev\"",
+    "build": "pnpm --filter beebaby-server run build && pnpm --filter beebaby-client run build",
     "start": "node server/dist/index.js",
-    "test": "npm test -w server"
+    "test": "pnpm --filter beebaby-server run test"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

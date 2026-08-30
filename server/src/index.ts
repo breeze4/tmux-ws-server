@@ -10,7 +10,7 @@ import { openApiDocument } from './openapi.js';
 
 const PORT = parseInt(process.env.PORT ?? '8001', 10);
 
-export const app = express();
+export const app: express.Express = express();
 
 app.use(express.json());
 app.use('/api', sessionRoutes);

@@ -30,13 +30,16 @@ pnpm start
 
 ## Deployment
 
-A local commit to `main` creates a durable Factory deployment intent. The
-Factory runner publishes the exact commit to GitHub and asks Factory to record
-the deployment. The `factory.project.yml` file is the active deployment
-contract. Factory runs `scripts/cicd-router-gates.sh` as the project gate. It
-restarts `beebaby-admin.service` and examines `/api/health` on port `8001`.
+This bridge keeps the Factory deployment active. A local commit to `main`
+creates a Factory deployment intent. Factory runs
+`scripts/cicd-router-gates.sh`, restarts `beebaby-admin.service`, and examines
+`/api/health` on port `8001`.
 
-The `cicd-router.project.yml` file is audit and recovery data. It does not
-control deployments.
+Woodpecker checks every push and pull request. A `main` push also publishes an
+immutable image to GitHub Container Registry. The image does not deploy during
+this bridge.
 
-The live app is available at `http://beebaby:8001/` on the private tailnet.
+The `factory.project.yml` and `cicd-router.project.yml` files remain in the
+repository for the Factory rollback path. The `compose.beebaby.yaml` file
+defines the later container runtime. For deployment, rollback, socket, and
+image details, see [the deployment guide](docs/deployment.md).

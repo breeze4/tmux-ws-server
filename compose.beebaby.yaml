@@ -1,0 +1,28 @@
+services:
+  beebaby-admin:
+    image: ${IMAGE_DIGEST:?Set IMAGE_DIGEST to an immutable GHCR digest}
+    environment:
+      PORT: "8080"
+      TMUX_SOCKET: /run/tmux/default
+    user: "1000:1000"
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    volumes:
+      - type: bind
+        source: ${TMUX_SOCKET:?Set TMUX_SOCKET to the host tmux socket}
+        target: /run/tmux/default
+        read_only: false
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 3

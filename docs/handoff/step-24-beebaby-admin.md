@@ -63,19 +63,49 @@ Skipping tmux-backed integration tests: tmux is not installed on this gate host.
 exit 0
 ```
 
-## Known blocker outside this repository
+## Pipeline and deployment evidence
 
-The deploy workflow cannot succeed until BeeBaby corrects the project record for
-this service. The record at
-`/srv/beebaby/config/infra/deploy/projects/beebaby-admin.yaml` still sets
-`retained_health_url: http://127.0.0.1:8001/api/health`. For any action other
-than `cutover`, `beebaby-deploy` curls that URL before it pulls an image. The
-cutover retired `beebaby-admin.service`, and Caddy now publishes port `8001`
-through a docker-proxy bound only to `100.103.192.66`, so the loopback address
-refuses the connection.
+Commit `ccce89c0aa0a92c086204a2eeb5ba18b041050d1` ran as Woodpecker pipeline `3`
+and reached `success`. All three workflow steps passed:
 
-Running the deployment command by hand with the commit that is already active
-reproduces the failure and changes nothing:
+```text
+303|beebaby-admin-gates|success
+305|deploy|success
+307|publish-image|success
+```
+
+The host recorded the deployment in
+`/srv/beebaby/deployments/beebaby-admin/active.env`:
+
+```text
+IMAGE_DIGEST=ghcr.io/breeze4/tmux-ws-server@sha256:fce20354386b3def6fbd8d9fb549c1354d93f358cb2cbb5c7a5998b69a48880f
+COMMIT_SHA=ccce89c0aa0a92c086204a2eeb5ba18b041050d1
+```
+
+The running container reports `healthy`, carries the matching revision label,
+and holds one bind mount:
+
+```text
+/tmp/tmux-1000/default -> /run/tmux/default (rw=true)
+```
+
+The live check returned `200`:
+
+```text
+$ curl -sS http://beebaby.tailc65f2f.ts.net:8001/api/health
+{"status":"ok"}
+```
+
+## Host defect found and fixed during this step
+
+The first deployment attempt failed before it pulled an image, because the
+project record at
+`/srv/beebaby/config/infra/deploy/projects/beebaby-admin.yaml` sets
+`retained_health_url: http://127.0.0.1:8001/api/health` and `beebaby-deploy`
+curled that URL unconditionally for any action other than `cutover`. The cutover
+retired `beebaby-admin.service`, and Caddy publishes port `8001` through a
+docker-proxy bound only to `100.103.192.66`, so the loopback address refuses the
+connection:
 
 ```text
 $ sudo -n /usr/local/sbin/beebaby-deploy beebaby-admin breeze4/tmux-ws-server \
@@ -85,17 +115,17 @@ curl: (7) Failed to connect to 127.0.0.1 port 8001 after 0 ms: Couldn't connect 
 exit=7
 ```
 
-The service itself is healthy. `http://beebaby.tailc65f2f.ts.net:8001/api/health`
-returns `200`.
-
-The fix belongs to the infrastructure repository: drop `retained_health_url`
-from the record, because the retained unit no longer exists. The `health_url`
-line in the same record is already unreachable code, since `beebaby-deploy`
-skips it whenever `target_health_url` is set. Other cut-over projects carry the
-same stale retained URL, so this is not specific to BeeBaby Admin.
+BeeBaby resolved this outside this repository. `/usr/local/sbin/beebaby-deploy`
+now guards the retained probe with a `retained_source_is_active` test, so it
+skips the probe once the retained unit is inactive. The pipeline deployment ran
+against the corrected script and passed.
 
 ## Remaining risks
 
+- The record still carries `retained_health_url` and `health_url` for a service
+  that no longer answers on loopback. Neither line runs today: the retained
+  probe is guarded, and `beebaby-deploy` skips `health_url` whenever
+  `target_health_url` is set. Both are stale and worth removing.
 - The check workflow image has no `tmux`, so the tmux-backed integration tests
   never run in the pipeline. Only the type check and the build guard a commit.
   The runtime image installs `tmux`, so a tmux regression would first appear in

@@ -30,16 +30,18 @@ pnpm start
 
 ## Deployment
 
-This bridge keeps the Factory deployment active. A local commit to `main`
-creates a Factory deployment intent. Factory runs
-`scripts/cicd-router-gates.sh`, restarts `beebaby-admin.service`, and examines
-`/api/health` on port `8001`.
+Woodpecker on BeeBaby tests each commit on the `main` branch, builds an
+immutable container image, publishes it to GitHub Container Registry, and
+deploys that digest through the restricted deployment command. Caddy proxies
+tailnet port `8001` to the running container, which listens on port `8080`.
 
-Woodpecker checks every push and pull request. A `main` push also publishes an
-immutable image to GitHub Container Registry. The image does not deploy during
-this bridge.
+Woodpecker checks every push and pull request with `scripts/ci-gates.sh`. Only a
+`main` push publishes an image and deploys it. The container mounts the host
+tmux socket and nothing else.
 
-The `factory.project.yml` and `cicd-router.project.yml` files remain in the
-repository for the Factory rollback path. The `compose.beebaby.yaml` file
-defines the later container runtime. For deployment, rollback, socket, and
-image details, see [the deployment guide](docs/deployment.md).
+The `deploy/` directory records the retired source-copy deployment. It stays
+until the container deployment passes one BeeBaby reboot and seven days of
+normal operation, because the documented rollback path still needs it.
+
+For the build, deploy, rollback, socket, and verification path, read
+[Deploy BeeBaby Admin](docs/deployment.md).

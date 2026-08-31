@@ -7,4 +7,4 @@ steps:
     commands:
       - apt-get update && apt-get install --yes --no-install-recommends g++ make python3 && rm -rf /var/lib/apt/lists/*
       - corepack enable
-      - bash scripts/cicd-router-gates.sh
+      - bash scripts/ci-gates.sh

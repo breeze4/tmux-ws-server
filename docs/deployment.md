@@ -1,58 +1,101 @@
-# Container bridge deployment
+# Deploy BeeBaby Admin
 
-## Active deployment path
+Woodpecker on BeeBaby builds, publishes, and deploys this repository. Factory no
+longer participates.
 
-Factory deploys the source service during this bridge. The
-`factory.project.yml` file and the `cicd-router.project.yml` file remain active
-recovery artifacts. Factory runs `scripts/cicd-router-gates.sh`, starts
-`beebaby-admin.service`, and checks `http://beebaby:8001/api/health`.
+## What happens on a push to main
 
-Woodpecker runs `.woodpecker/check.yaml` for pushes and pull requests. A push
-to `main` runs `.woodpecker/publish.yaml` and publishes
-`ghcr.io/breeze4/tmux-ws-server` with the exact commit SHA as its tag. The
-workflow does not deploy the image during this bridge.
+Woodpecker runs three workflows for each commit on `main`:
 
-## Build the image
+1. `.woodpecker/check.yaml` runs `scripts/ci-gates.sh` in a pinned Node
+   container.
+2. `.woodpecker/publish.yaml` builds the runtime image and pushes it to
+   `ghcr.io/breeze4/tmux-ws-server` with the commit SHA as its tag.
+3. `.woodpecker/deploy.yaml` calls the restricted deployment command on BeeBaby
+   with that tag. The host resolves the tag to its immutable digest with its own
+   registry credentials, so the registry token stays limited to the build
+   plugin.
 
-To build the image, use the locked pnpm workspace:
+A pull request runs only the check workflow. Deployment secrets stay out of pull
+request pipelines.
 
-```bash
-pnpm install --frozen-lockfile
-pnpm run build
-docker build \
-    --build-arg VCS_REF=COMMIT_SHA \
-    --build-arg BUILD_DATE=TIMESTAMP \
-    -t beebaby-admin:COMMIT_SHA .
+## What the deployment command does
+
+The `deploy` forced command reaches `/usr/local/sbin/beebaby-deploy`, which
+accepts only an allowlisted project, repository, commit, image, and action. For
+each deployment it takes the host lock, confirms that the image belongs to the
+expected GHCR repository, confirms that the image revision label equals the
+pipeline commit, renders the Compose stack with the digest, waits for container
+health, probes the service through the Caddy edge, and records the digest. A
+failed health or route check restores the previous digest.
+
+## Roll back
+
+To return to the previous digest, read the last two entries in
+`/srv/beebaby/deployments/beebaby-admin/history.log` on BeeBaby and run the
+deployment command with the digest you want:
+
+```sh
+ssh beeadmin@beebaby
+sudo /usr/local/sbin/beebaby-deploy beebaby-admin breeze4/tmux-ws-server \
+  COMMIT_SHA ghcr.io/breeze4/tmux-ws-server@sha256:DIGEST deploy
 ```
 
-Replace `COMMIT_SHA` with the Git commit SHA. Replace `TIMESTAMP` with an ISO
-8601 UTC timestamp.
+The active digest and commit stay in
+`/srv/beebaby/deployments/beebaby-admin/active.env`.
 
-The Dockerfile uses the pinned Node `22.17.1` image. The final image runs as
-UID and GID `1000`, listens on port `8080`, and exposes `/api/health` through
-its Docker health check.
+## Data and secrets
 
-## Run the container
+The service holds no persistent data and reads no secret file. It needs one host
+value, the tmux socket path, which BeeBaby keeps in the protected deployment
+environment file `/srv/beebaby/secrets/deploy-env/beebaby-admin.env` as
+`TMUX_SOCKET=/tmp/tmux-1000/default`. A rollback needs no data action.
 
-To run the container, set the required values before rendering the Compose
-file:
+The container binds only that socket, to `/run/tmux/default`. It mounts no host
+directory, no SSH directory, and no Docker socket. Do not widen the mount.
 
-```bash
-IMAGE_DIGEST=ghcr.io/breeze4/tmux-ws-server@sha256:IMAGE_DIGEST \
+The runtime uses UID and GID `1000` to match the socket owner, a read-only root
+file system, a temporary `/tmp` file system, and no Linux capabilities. Caddy
+owns the tailnet listener on port `8001` and proxies to container port `8080`,
+so the Compose file publishes no host port.
+
+## Build and run the image locally
+
+To build the image the way the publish workflow builds it:
+
+```sh
+pnpm install --frozen-lockfile
+docker build --build-arg VCS_REF=COMMIT_SHA -t beebaby-admin:COMMIT_SHA .
+```
+
+Replace `COMMIT_SHA` with the Git commit SHA. The Dockerfile pins the Node
+`22.17.1` image and installs `tmux` in the runtime stage.
+
+To render the deployed Compose stack, set both variables first:
+
+```sh
+IMAGE_DIGEST=ghcr.io/breeze4/tmux-ws-server@sha256:DIGEST \
 TMUX_SOCKET=/tmp/tmux-1000/default \
 docker compose -f compose.beebaby.yaml config
 ```
 
-Replace `IMAGE_DIGEST` with the published immutable image digest. The Compose
-service binds only `TMUX_SOCKET` to `/run/tmux/default`. It does not mount a
-host directory, an SSH directory, or the Docker socket.
+## Verify a deployment
 
-The service uses a read-only root file system, drops Linux capabilities, and
-uses a temporary `/tmp` file system. Caddy owns the private listener in the
-final cutover, so the Compose file does not publish a host port.
+After a deployment, read the recorded commit and check the live health endpoint:
 
-## Roll back the bridge
+```sh
+ssh beebaby 'sudo -n cat /srv/beebaby/deployments/beebaby-admin/active.env'
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  http://beebaby.tailc65f2f.ts.net:8001/api/health
+```
 
-To roll back before the Factory shutdown, stop the container and leave
-`beebaby-admin.service` as the only writer to the tmux socket. Factory remains
-the source-deployment and rollback path until the cleanup commit removes it.
+`COMMIT_SHA` must equal the deployed commit, and the health endpoint must return
+`200`.
+
+## Retired source deployment
+
+The `deploy/remote-bootstrap.sh` script and the
+`deploy/beebaby-admin.service` unit describe the retired source-copy deployment.
+They stay in the tree until the container deployment passes one BeeBaby reboot
+and seven days of normal operation, because the documented rollback path still
+needs them. Remove them after that window closes.

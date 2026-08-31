@@ -18,15 +18,15 @@ The build output is in `server/dist/` and `server/public/`.
 
 ## Deployment
 
-Factory owns the active source deployment during the container bridge. A push
-to `main` sends the exact commit to Factory. Factory runs the retained
-`scripts/cicd-router-gates.sh` gate, copies the source, runs
-`deploy/remote-bootstrap.sh`, and restarts `beebaby-admin.service`.
+Woodpecker on BeeBaby owns the deployment. A push to `main` runs the check,
+publish, and deploy workflows in `.woodpecker/`. The deploy workflow calls the
+restricted deployment command on BeeBaby, which resolves the published tag to an
+immutable digest and rolls the container forward. Caddy proxies tailnet port
+`8001` to container port `8080`.
 
-Woodpecker checks each push and pull request. A `main` push publishes an
-immutable container image, but does not deploy it during this bridge. The
-container mounts only the host tmux socket. It does not mount a host directory,
-an SSH directory, or the Docker socket.
+The container mounts only the host tmux socket. It does not mount a host
+directory, an SSH directory, or the Docker socket. Do not widen that mount.
 
-Before you push, run `bash scripts/cicd-router-gates.sh`. After Factory deploys
-the commit, examine `http://beebaby:8001/api/health`.
+Before you push, run `bash scripts/ci-gates.sh`. After the pipeline deploys the
+commit, examine `http://beebaby.tailc65f2f.ts.net:8001/api/health`. For the
+build, rollback, and verification path, read `docs/deployment.md`.

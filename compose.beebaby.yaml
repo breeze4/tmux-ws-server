@@ -14,9 +14,13 @@ services:
     tmpfs:
       - /tmp
     volumes:
+      # Mount the socket directory rather than the socket file. A tmux socket
+      # exists only while a tmux server runs, so a file mount makes the
+      # container unstartable after a reboot. A directory mount starts either
+      # way, and the socket appears inside the container when a server starts.
       - type: bind
-        source: ${TMUX_SOCKET:?Set TMUX_SOCKET to the host tmux socket}
-        target: /run/tmux/default
+        source: ${TMUX_SOCKET_DIR:?Set TMUX_SOCKET_DIR to the host tmux socket directory}
+        target: /run/tmux
         read_only: false
         bind:
           create_host_path: false

@@ -94,6 +94,7 @@ A self-hosted web app at `beebaby:8001` that provides a browser-based tmux sessi
 - **No bespoke system management features** — tmux sessions provide full shell access; any system management can be done from a terminal.
 - **Flow control from the start** — watermark-based PAUSE/RESUME in the WebSocket protocol. ~35 lines total across client and server, prevents OOM on high-throughput output (`cat bigfile`). Easier to include in the initial protocol design than retrofit.
 - **tmux window-size policy: `latest`** — session tracks the most recently active client. User rarely attaches multiple panes to the same session; `latest` gives no dead space and acceptable reflow behavior for single-user use.
+- **Host runtime, not a container** — The service runs on BeeBaby as a beeadmin user systemd unit and listens on port 8001 itself, with no Caddy route and no container. The app exists to reach the host: its tmux sessions must run host shells with the host toolchain (Claude CLI, repositories, SSH keys, sudo), and it must keep working when Docker or Caddy is down. A container cannot meet that without mounting most of the host. Added 2026-09-05 after the container deployment captured the tmux socket; see `docs/plans/2026-09-05-01-return-to-host-runtime.md`.
 
 ## Testing Decisions
 

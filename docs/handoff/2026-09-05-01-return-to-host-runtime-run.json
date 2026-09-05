@@ -1,0 +1,230 @@
+{
+  "spec": "Return BeeBaby Admin to the host runtime",
+  "repo": "beebaby-admin",
+  "branch": "main",
+  "status": "recovering",
+  "started": "2026-09-05 09:48",
+  "updated": "10:35",
+  "now": "Step 4 is recovering from a host deployment command failure before the Admin unit restart.",
+  "steps": [
+    {
+      "id": "step-1",
+      "plan": "return-to-host-runtime",
+      "title": "Restore service by hand",
+      "status": "pass",
+      "startedAt": "09:49",
+      "finishedAt": "09:57",
+      "summary": "The host user unit now serves Admin on port 8001. Caddy releases the port, and browser terminal verification confirms a BeeBaby host shell with the Claude CLI.",
+      "commit": { "hash": "8de4a65", "diffstat": "Admin: 2 files changed, 61 insertions(+), 7 deletions(-). Infra: a95deaf, 2 files changed, 2 insertions(+), 4 deletions(-)." },
+      "gates": [
+        {
+          "type": "test",
+          "name": "Infrastructure build and test",
+          "status": "pass",
+          "attempt": 1,
+          "cmd": "bash scripts/ci-gates.sh",
+          "tail": "state.tar: OK\nbeebaby-deploy: undeclared image variable\nbeebaby-deploy: another deployment holds the host lock\nbeebaby-deploy: repository is not allowlisted\nbeebaby-deploy: missing image for ADMIN_IMAGE_DIGEST\nbeebaby-deploy: cutover source unit must be stopped\nbeebaby-deploy: protected deployment environment file must be owned by root\nbeebaby-deploy: protected deployment environment file must be owned by root\nbeebaby-deploy: image tag is invalid\ninfrastructure gates passed"
+        },
+        {
+          "type": "live",
+          "name": "Health probe",
+          "status": "fail",
+          "attempt": 1,
+          "classification": "transient",
+          "disposition": "Retry after confirming the user unit has bound port 8001.",
+          "recovery": "journalctl shows Node started at 09:50:23 and ss shows the host Node PID 2335209 listening on *:8001.",
+          "transcript": "curl -sS -o /dev/null -w '%{http_code}\\n' http://beebaby.tailc65f2f.ts.net:8001/api/health\ncurl: (7) Failed to connect to beebaby.tailc65f2f.ts.net port 8001 after 6 ms: Couldn't connect to server\n000"
+        },
+        {
+          "type": "criteria",
+          "name": "Acceptance verify (fresh context)",
+          "status": "fail",
+          "attempt": 1,
+          "classification": "acceptance",
+          "disposition": "Correct the browser-test environment and run a new fresh-context verifier.",
+          "recovery": "Created the required screenshots directory. The next verifier will focus the xterm helper textarea before typing and will retain its screenshot evidence.",
+          "criteria": [
+            { "text": "Stop and remove the Admin container stack.", "status": "pass", "evidence": "sudo -n docker ps -a lists no beebaby-admin container." },
+            { "text": "Clear the default tmux socket.", "status": "pass", "evidence": "/tmp/tmux-1000/default is absent and the host process list has no container tmux server." },
+            { "text": "Remove Caddy port 8001 and split edge publication.", "status": "pass", "evidence": "The local diff and host configuration omit :8001 and publish 8000 separately from 8002-8013." },
+            { "text": "Run gates, synchronize, and apply the edge stack.", "status": "pass", "evidence": "The infra gate passed and the recreated Caddy container has the expected bindings." },
+            { "text": "Free port 8001 before the host unit starts.", "status": "pass", "evidence": "Caddy started before the unit and ss shows only host Node PID 2335209 on port 8001." },
+            { "text": "Start the retired user unit.", "status": "pass", "evidence": "systemctl reports active and the health endpoint returns 200." },
+            { "text": "Run hostname, which claude, and id -un through the browser terminal and save a screenshot.", "status": "fail", "evidence": "The page created verify-step-1, but input produced blank prompts and no screenshots directory existed. The verifier killed the test session." }
+          ]
+        },
+        {
+          "type": "live",
+          "name": "Health probe",
+          "status": "pass",
+          "attempt": 2,
+          "transcript": "ssh beebaby 'curl -sS -o /dev/null -w \"%{http_code}\\n\" http://127.0.0.1:8001/api/health' => 200\nssh beebaby 'curl -sS -o /dev/null -w \"%{http_code}\\n\" http://100.103.192.66:8001/api/health' => 200\ncurl -sS -o /dev/null -w '%{http_code}\\n' http://beebaby.tailc65f2f.ts.net:8001/api/health => 200"
+        },
+        {
+          "type": "criteria",
+          "name": "Acceptance verify (fresh context)",
+          "status": "pass",
+          "attempt": 2,
+          "criteria": [
+            { "text": "Run hostname, which claude, and id -un through the browser terminal and save a screenshot.", "status": "pass", "evidence": "Focused .xterm-helper-textarea, sent the exact command, and tmux capture confirmed beebaby, /home/beeadmin/.local/bin/claude, and beeadmin; two screenshots were saved." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "plan": "return-to-host-runtime",
+      "title": "Add the host deployment runtime",
+      "status": "pass",
+      "startedAt": "09:58",
+      "finishedAt": "10:20",
+      "summary": "The restricted deployment command now supports validated host records. BeeBaby has the matching forced command, and the Admin record selects the source-marker host runtime.",
+      "commit": { "hash": "4ed8b50", "diffstat": "Admin: 2 files changed, 59 insertions(+), 10 deletions(-). Infra: 93b69e1, 6 files changed, 241 insertions(+), 16 deletions(-)." },
+      "gates": [
+        {
+          "type": "criteria",
+          "name": "Acceptance verify (fresh context)",
+          "status": "fail",
+          "attempt": 1,
+          "classification": "acceptance",
+          "disposition": "Repair the host-unit stop error path and add validation coverage, then use a new verifier.",
+          "recovery": "The verifier found that stop_host_unit masks a systemctl stop failure with || true. The implementer will make this failure reject and prove the no-previous-state path.",
+          "criteria": [
+            { "text": "Host failure recovery stops the unit when no previous record exists.", "status": "fail", "evidence": "stop_host_unit masks its systemctl failure, so recover_failed_host can leave the unit active." },
+            { "text": "Existing checkout requires .git.", "status": "pass", "evidence": "The host checkout validator rejects an existing directory without .git." },
+            { "text": "Reuse source-unit helpers and skip protected environment files.", "status": "pass", "evidence": "The host branch sets the source values, uses the helpers, and exits before load_deployment_environment." },
+            { "text": "Validation and record gates cover host runtime records.", "status": "pass", "evidence": "The gate accepts host-test, rejects mixed records, logs the fake git commit, and counts 15 records with 13 Compose records." },
+            { "text": "Host record, port registry, and documentation match the contract.", "status": "pass", "evidence": "The Admin record has host fields, the port registry marks runtime host, and documentation describes host deployment." },
+            { "text": "Host checkout outside the user home rejects.", "status": "pass", "evidence": "A /tmp host_checkout returned exit 64 with the expected rejection." }
+          ]
+        },
+        {
+          "type": "criteria",
+          "name": "Acceptance verify (fresh context)",
+          "status": "fail",
+          "attempt": 2,
+          "classification": "acceptance",
+          "disposition": "Add a post-stop ActiveState check and validation evidence, then use another fresh verifier.",
+          "recovery": "The first repair rejects a stop command failure, but does not inspect ActiveState after the stop attempt. The next repair will detect any unit that remains active.",
+          "criteria": [
+            { "text": "A failed first deployment leaves the unit stopped or detects that it remains active.", "status": "fail", "evidence": "The stop helper has no post-stop ActiveState check and the focused test does not inspect resulting state." },
+            { "text": "CI and the remaining host runtime contract requirements pass.", "status": "pass", "evidence": "The full infrastructure gate passed and all other reviewed contract requirements passed." }
+          ]
+        },
+        {
+          "type": "test",
+          "name": "Host installation gate",
+          "status": "pass",
+          "attempt": 1,
+          "cmd": "bash scripts/sync-to-host.sh && bash scripts/install-forced-command.sh && ssh beebaby 'sudo -n /usr/local/sbin/beebaby-deploy'",
+          "tail": "synchronized a95deaf8af0013e61bc22d814a98420027488d98 to beebaby:/srv/beebaby/config/infra\n6135a65e39bfcbbdf6f5d1bf3141049ecd95483690841d8e3ce7a5ede055f4c4\nexpected 6135a65e39bfcbbdf6f5d1bf3141049ecd95483690841d8e3ce7a5ede055f4c4\nbeebaby-deploy: expected PROJECT REPOSITORY COMMIT DIGEST ACTION [VARIABLE=DIGEST ...]"
+        },
+        {
+          "type": "criteria",
+          "name": "Acceptance verify (fresh context)",
+          "status": "fail",
+          "attempt": 3,
+          "classification": "acceptance",
+          "disposition": "Run a new verifier against Step 2 scope only.",
+          "recovery": "The verifier confirmed the gate and host installation, but incorrectly required Step 4 active records and checkout cutover. Phase 2 expressly forbids the Admin host deployment.",
+          "criteria": [
+            { "text": "Phase 2 host-runtime command and installation gate.", "status": "pass", "evidence": "The infra gate passed, the installed command SHA matched, and no-argument usage rejected with exit 64." },
+            { "text": "Admin host checkout and source active record after deployment.", "status": "fail", "evidence": "The verifier tested the stale checkout and container-era active record, which are intentionally replaced only in Step 4." }
+          ]
+        },
+        {
+          "type": "test",
+          "name": "Infrastructure build and test",
+          "status": "pass",
+          "attempt": 2,
+          "cmd": "bash scripts/ci-gates.sh",
+          "tail": "state.tar: OK\nbeebaby-deploy: undeclared image variable\nbeebaby-deploy: another deployment holds the host lock\nbeebaby-deploy: repository is not allowlisted\nbeebaby-deploy: missing image for ADMIN_IMAGE_DIGEST\nbeebaby-deploy: cutover source unit must be stopped\nbeebaby-deploy: host project record must not declare compose_path\nbeebaby-deploy: container project record must not declare host_unit\nbeebaby-deploy: protected deployment environment file must be owned by root\nbeebaby-deploy: image tag is invalid\ninfrastructure gates passed"
+        },
+        {
+          "type": "criteria",
+          "name": "Acceptance verify (fresh context)",
+          "status": "pass",
+          "attempt": 4,
+          "criteria": [
+            { "text": "Every Phase 2 checklist item and the Phase 2 Done when conditions.", "status": "pass", "evidence": "A fresh verifier passed the host branch, validation matrix, documentation, host synchronization, matching forced-command SHA, and no-argument usage rejection." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "plan": "return-to-host-runtime",
+      "title": "Add host runtime files",
+      "status": "pass",
+      "startedAt": "10:21",
+      "finishedAt": "10:31",
+      "summary": "Admin now binds the configured host address, uses a complete user unit, and deploys through the source-marker host runtime. The repository contains no container deployment artifacts.",
+      "commit": { "hash": "1f06254", "diffstat": "11 files changed, 123 insertions(+), 204 deletions(-)." },
+      "gates": [
+        {
+          "type": "criteria",
+          "name": "Acceptance verify (fresh context)",
+          "status": "fail",
+          "attempt": 1,
+          "classification": "baseline",
+          "disposition": "Use the required CI gate, which detects absent tmux and skips only tmux-backed integration tests, then rerun a scope-correct verifier.",
+          "recovery": "The direct pnpm test command failed because tmux is absent. The required bash scripts/ci-gates.sh gate passed and reports that the same tmux tests were skipped.",
+          "criteria": [
+            { "text": "HOST binding, unit, workflow, deleted files, documents, and local bind check.", "status": "pass", "evidence": "The verifier passed each required implementation and document criterion." },
+            { "text": "Direct tmux-backed test suite runs on this Mac.", "status": "fail", "evidence": "pnpm test returned session HTTP 500 errors and terminal timeouts because tmux is absent." }
+          ]
+        },
+        {
+          "type": "criteria",
+          "name": "Acceptance verify (fresh context)",
+          "status": "pass",
+          "attempt": 2,
+          "criteria": [
+            { "text": "Every Phase 3 checklist item and required gate.", "status": "pass", "evidence": "A fresh verifier passed the HOST binding, unit, exact workflow, file removals, documentation self-check, required CI gate, and local health probe." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "plan": "return-to-host-runtime",
+      "title": "Cut over through deployment",
+      "status": "recovering",
+      "startedAt": "10:33",
+      "gates": [
+        {
+          "type": "live",
+          "name": "Woodpecker deployment",
+          "status": "fail",
+          "attempt": 1,
+          "classification": "implementation",
+          "disposition": "Repair the host deployment command, reinstall it, and rerun the exact commit.",
+          "recovery": "The command cloned the commit, then Corepack selected pnpm 11.9.0 instead of the pinned 11.5.1. Recovery then rejected a container-era previous.env record.",
+          "transcript": "Pipeline 6 check succeeded. Deploy exited 64 after: [ERROR] This project is configured to use 11.5.1 of pnpm. Your current pnpm is v11.9.0. Then: beebaby-deploy: previous host deployment record is invalid."
+        }
+      ]
+    },
+    { "id": "step-5", "plan": "return-to-host-runtime", "title": "Remove container remains", "status": "queued" }
+  ],
+  "events": [
+    { "t": "10:35", "msg": "Step 4 Woodpecker deployment attempt 1 failed before restarting the unit. Classified implementation; repair Corepack pinned-version use and container-era record handling, reinstall, and rerun." },
+    { "t": "10:33", "msg": "Step 4 started: moving the stale checkout, pushing the Admin host-runtime commit, and monitoring the deployment." },
+    { "t": "10:31", "msg": "Step 3 complete. Admin commit 1f06254 records the host runtime and removes the container deployment artifacts. Step 4 will push and cut over the host." },
+    { "t": "10:26", "msg": "Step 3 acceptance verify found a tmux-dependent direct-test baseline. The required CI gate passed with those tests skipped; a scope-correct fresh verifier is required." },
+    { "t": "10:21", "msg": "Step 3 started: replacing the Admin container deployment files with the host runtime contract." },
+    { "t": "10:20", "msg": "Step 2 complete. Admin commit 4ed8b50 records the contract handoff. Infra commit 93b69e1 is pushed after passing the full infrastructure gate." },
+    { "t": "10:13", "msg": "Step 2 operational verifier confirmed the command installation, but tested Step 4-only active-record and checkout state. Classified acceptance scope error; a Step 2-only verifier will run." },
+    { "t": "10:09", "msg": "Step 2 synchronized the verified infra worktree and installed a matching forced command. The no-argument command rejected with its usage line." },
+    { "t": "10:05", "msg": "Step 2 acceptance verify attempt 2 found a missing post-stop ActiveState check. Classified acceptance; add state verification and rerun a fresh verifier." },
+    { "t": "10:02", "msg": "Step 2 acceptance verify attempt 1 failed. The no-prior-deployment recovery path masks a host-unit stop failure. Classified acceptance; repair and a fresh verifier are required." },
+    { "t": "09:58", "msg": "Step 2 started: adding the host deployment runtime and its validation coverage." },
+    { "t": "09:57", "msg": "Step 1 complete. Admin commit 8de4a65 records the handoff and checked plan tasks. Infra commit a95deaf is pushed." },
+    { "t": "09:56", "msg": "Step 1 gates passed. Infra commit a95deaf is pushed; the Admin handoff commit is next." },
+    { "t": "09:56", "msg": "Step 1 acceptance verify attempt 2 passed after focusing the xterm helper textarea. The browser terminal showed the BeeBaby host, Claude CLI path, and beeadmin user." },
+    { "t": "09:50", "msg": "Step 1 acceptance verify attempt 1 failed only at browser terminal input and screenshot storage. Classified acceptance; created screenshots directory and will use a new verifier with explicit xterm focus." },
+    { "t": "09:50", "msg": "Step 1 health probe attempt 1 failed during unit startup. Classified transient; journal and socket prove the host Node process is now listening, so the probe will run again." },
+    { "t": "09:49", "msg": "Step 1 infrastructure gate passed. The Caddy listener change is ready to synchronize to BeeBaby." },
+    { "t": "09:49", "msg": "Step 1 started: stopping the retired Admin container and releasing port 8001." },
+    { "t": "09:48", "msg": "Run started. Baseline: Admin unit inactive, port 8001 belongs to the Admin container, and all other observed containers are healthy." }
+  ]
+}

@@ -8,3 +8,9 @@
 - **Mobile web terminals need a control key toolbar.** No Ctrl+C on a phone. Use `onTouchStart` not `onClick`. Include arrow keys and Enter for TUI app interaction.
 - **`100vh` is wrong on mobile.** Use `100dvh` with `@supports` fallback. Don't use `position: fixed` on body.
 - **Pre-implementation research is strong on setup patterns, weak on timing and runtime failures.** The ~20% that was wrong was all timing-between-components and environment-specific error handling — things that only surface when running on a real device.
+
+## 2026-09-05 — Host runtime cutover
+
+- **A container cannot serve a host-access tool.** A shared tmux socket lets a container client start the tmux server inside the container.
+- **A failsafe must not depend on the platform that it repairs.** The Admin service runs as a host user unit and binds its Tailscale address directly.
+- **Host builds need the pinned package-manager shim on `PATH`.** Corepack must enable the pinned pnpm shim before a package script invokes pnpm again.

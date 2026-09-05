@@ -116,22 +116,22 @@ On BeeBaby, as beeadmin, complete these steps in order:
 
 In the `beebaby-infra` repository, complete these steps:
 
-- [ ] Add the host record keys and the `runtime: host` branch to
+- [x] Add the host record keys and the `runtime: host` branch to
       `deploy/beebaby-deploy`, following the contract in this plan.
-- [ ] Reject a `host_checkout` path that exists without a `.git` directory, so
+- [x] Reject a `host_checkout` path that exists without a `.git` directory, so
       the stale tree from the retired deployment never passes as a checkout.
-- [ ] Reuse `source_unit_value` and `restart_source_unit` for the unit steps.
-- [ ] Skip `load_deployment_environment` for host records.
-- [ ] Add validation-mode tests to `scripts/ci-gates.sh`: a host record
+- [x] Reuse `source_unit_value` and `restart_source_unit` for the unit steps.
+- [x] Skip `load_deployment_environment` for host records.
+- [x] Add validation-mode tests to `scripts/ci-gates.sh`: a host record
       validates, a host record with `compose_path` is rejected, a container
       record with `host_unit` is rejected, and the fake `git` receives the
       commit.
-- [ ] Update the record-count and `compose_path` gates for one host record.
-- [ ] Rewrite `deploy/projects/beebaby-admin.yaml` as a host record.
-- [ ] Mark `beebaby-admin` as `runtime: host` in `config/ports.yaml`.
-- [ ] Document the host runtime in `docs/operations.md` and in
+- [x] Update the record-count and `compose_path` gates for one host record.
+- [x] Rewrite `deploy/projects/beebaby-admin.yaml` as a host record.
+- [x] Mark `beebaby-admin` as `runtime: host` in `config/ports.yaml`.
+- [x] Document the host runtime in `docs/operations.md` and in
       `deploy/projects/README.md`.
-- [ ] Run `scripts/ci-gates.sh`, `scripts/sync-to-host.sh`, and
+- [x] Run `scripts/ci-gates.sh`, `scripts/sync-to-host.sh`, and
       `scripts/install-forced-command.sh`.
 
 ### Phase 3: host bits in this repository

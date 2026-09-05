@@ -18,15 +18,19 @@ The build output is in `server/dist/` and `server/public/`.
 
 ## Deployment
 
-Woodpecker on BeeBaby owns the deployment. A push to `main` runs the check,
-publish, and deploy workflows in `.woodpecker/`. The deploy workflow calls the
-restricted deployment command on BeeBaby, which resolves the published tag to an
-immutable digest and rolls the container forward. Caddy proxies tailnet port
-`8001` to container port `8080`.
+BeeBaby Admin runs on the BeeBaby host through the `beeadmin` user unit
+`beebaby-admin.service`. The unit starts the Node server with
+`HOST=100.103.192.66`, `PORT=8001`, and `NODE_ENV=production`.
 
-The container mounts only the host tmux socket. It does not mount a host
-directory, an SSH directory, or the Docker socket. Do not widen that mount.
+A push to `main` runs the check and deploy workflows in `.woodpecker/`. The
+deploy workflow sends the host deployment command with the `source` marker.
+Before you push, run `bash scripts/ci-gates.sh`.
 
-Before you push, run `bash scripts/ci-gates.sh`. After the pipeline deploys the
-commit, examine `http://beebaby.tailc65f2f.ts.net:8001/api/health`. For the
-build, rollback, and verification path, read `docs/deployment.md`.
+To deploy a commit manually, run:
+
+```sh
+ssh beeadmin@100.103.192.66 \
+  "deploy beebaby-admin breeze4/tmux-ws-server COMMIT_SHA source deploy"
+```
+
+For rollback and verification procedures, read `docs/deployment.md`.

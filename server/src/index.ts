@@ -9,6 +9,7 @@ import swaggerUi from 'swagger-ui-express';
 import { openApiDocument } from './openapi.js';
 
 const PORT = parseInt(process.env.PORT ?? '8001', 10);
+const HOST = process.env.HOST ?? '0.0.0.0';
 
 export const app: express.Express = express();
 
@@ -81,7 +82,7 @@ process.on('SIGTERM', shutdown);
 // Under vitest the tests own the listener; everywhere else this is the entry
 // point and it listens as before.
 if (!process.env.VITEST) {
-  server.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
+  server.listen(PORT, HOST, () => {
+    console.log(`Server listening on ${HOST}:${PORT}`);
   });
 }

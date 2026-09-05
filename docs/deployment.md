@@ -1,101 +1,74 @@
 # Deploy BeeBaby Admin
 
-Woodpecker on BeeBaby builds, publishes, and deploys this repository. Factory no
-longer participates.
+BeeBaby Admin runs on the BeeBaby host as the `beeadmin` user. The
+`beebaby-admin.service` user unit starts `server/dist/index.js` and binds
+`100.103.192.66:8001`. The service runs outside containers.
 
-## What happens on a push to main
+## Deploy a pushed commit
 
-Woodpecker runs three workflows for each commit on `main`:
+When you push a commit to `main`, Woodpecker runs these workflows:
 
-1. `.woodpecker/check.yaml` runs `scripts/ci-gates.sh` in a pinned Node
-   container.
-2. `.woodpecker/publish.yaml` builds the runtime image and pushes it to
-   `ghcr.io/breeze4/tmux-ws-server` with the commit SHA as its tag.
-3. `.woodpecker/deploy.yaml` calls the restricted deployment command on BeeBaby
-   with that tag. The host resolves the tag to its immutable digest with its own
-   registry credentials, so the registry token stays limited to the build
-   plugin.
+1. `.woodpecker/check.yaml` runs `bash scripts/ci-gates.sh`.
+2. `.woodpecker/deploy.yaml` connects to BeeBaby and sends the restricted
+   deployment command with the commit SHA and the `source` marker.
 
-A pull request runs only the check workflow. Deployment secrets stay out of pull
-request pipelines.
+A pull request runs only the check workflow. Deployment credentials are not
+available to pull request pipelines.
 
-## What the deployment command does
+Before you push, run the local gate:
 
-The `deploy` forced command reaches `/usr/local/sbin/beebaby-deploy`, which
-accepts only an allowlisted project, repository, commit, image, and action. For
-each deployment it takes the host lock, confirms that the image belongs to the
-expected GHCR repository, confirms that the image revision label equals the
-pipeline commit, renders the Compose stack with the digest, waits for container
-health, probes the service through the Caddy edge, and records the digest. A
-failed health or route check restores the previous digest.
+```sh
+bash scripts/ci-gates.sh
+```
+
+The deployment command fetches the commit into
+`/home/beeadmin/dev/beebaby-admin`, installs dependencies, builds the app,
+installs the user unit, restarts it, checks the health endpoint, and records the
+active commit. If the health check fails, the command restores the previous
+recorded commit.
+
+## Deploy a commit manually
+
+To deploy a specific commit, connect with the deployment account and run this
+command:
+
+```sh
+ssh beeadmin@100.103.192.66 \
+  "deploy beebaby-admin breeze4/tmux-ws-server COMMIT_SHA source deploy"
+```
+
+Replace `COMMIT_SHA` with the full Git commit SHA. The restricted command accepts
+only the allowlisted project and repository.
 
 ## Roll back
 
-To return to the previous digest, read the last two entries in
-`/srv/beebaby/deployments/beebaby-admin/history.log` on BeeBaby and run the
-deployment command with the digest you want:
+To restore the previous recorded commit, run this command:
 
 ```sh
-ssh beeadmin@beebaby
-sudo /usr/local/sbin/beebaby-deploy beebaby-admin breeze4/tmux-ws-server \
-  COMMIT_SHA ghcr.io/breeze4/tmux-ws-server@sha256:DIGEST deploy
+ssh beeadmin@100.103.192.66 \
+  "deploy beebaby-admin breeze4/tmux-ws-server COMMIT_SHA source rollback"
 ```
 
-The active digest and commit stay in
-`/srv/beebaby/deployments/beebaby-admin/active.env`.
-
-## Data and secrets
-
-The service holds no persistent data and reads no secret file. It needs one host
-value, the tmux socket path, which BeeBaby keeps in the protected deployment
-environment file `/srv/beebaby/secrets/deploy-env/beebaby-admin.env` as
-`TMUX_SOCKET=/tmp/tmux-1000/default`. A rollback needs no data action.
-
-The container binds only that socket, to `/run/tmux/default`. It mounts no host
-directory, no SSH directory, and no Docker socket. Do not widen the mount.
-
-The runtime uses UID and GID `1000` to match the socket owner, a read-only root
-file system, a temporary `/tmp` file system, and no Linux capabilities. Caddy
-owns the tailnet listener on port `8001` and proxies to container port `8080`,
-so the Compose file publishes no host port.
-
-## Build and run the image locally
-
-To build the image the way the publish workflow builds it:
-
-```sh
-pnpm install --frozen-lockfile
-docker build --build-arg VCS_REF=COMMIT_SHA -t beebaby-admin:COMMIT_SHA .
-```
-
-Replace `COMMIT_SHA` with the Git commit SHA. The Dockerfile pins the Node
-`22.17.1` image and installs `tmux` in the runtime stage.
-
-To render the deployed Compose stack, set both variables first:
-
-```sh
-IMAGE_DIGEST=ghcr.io/breeze4/tmux-ws-server@sha256:DIGEST \
-TMUX_SOCKET=/tmp/tmux-1000/default \
-docker compose -f compose.beebaby.yaml config
-```
+Replace `COMMIT_SHA` with the full Git commit SHA. The rollback action reads the
+previous deployment record and restarts the service with that commit.
 
 ## Verify a deployment
 
-After a deployment, read the recorded commit and check the live health endpoint:
+After a deployment or rollback, verify the recorded commit and health endpoint:
 
 ```sh
-ssh beebaby 'sudo -n cat /srv/beebaby/deployments/beebaby-admin/active.env'
+ssh beeadmin@100.103.192.66 \
+  'cat /srv/beebaby/deployments/beebaby-admin/active.env'
 curl -sS -o /dev/null -w '%{http_code}\n' \
   http://beebaby.tailc65f2f.ts.net:8001/api/health
 ```
 
-`COMMIT_SHA` must equal the deployed commit, and the health endpoint must return
-`200`.
+The `COMMIT_SHA` value in `active.env` matches the deployed commit. The health
+endpoint returns HTTP `200 OK`.
 
-## Retired source deployment
+## Restart after a reboot
 
-The `deploy/remote-bootstrap.sh` script and the
-`deploy/beebaby-admin.service` unit describe the retired source-copy deployment.
-They stay in the tree until the container deployment passes one BeeBaby reboot
-and seven days of normal operation, because the documented rollback path still
-needs them. Remove them after that window closes.
+The `beebaby-admin.service` user unit has `Restart=always` and is enabled in the
+`beeadmin` user manager. After BeeBaby reboots, systemd starts the unit after
+`network-online.target` is active. The unit sets `HOST=100.103.192.66`,
+`PORT=8001`, and `NODE_ENV=production`.

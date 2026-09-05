@@ -1,5 +1,7 @@
 [Unit]
 Description=BeeBaby Admin
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=simple
@@ -7,6 +9,8 @@ WorkingDirectory=%h/dev/beebaby-admin
 ExecStart=/usr/bin/node server/dist/index.js
 Restart=always
 RestartSec=5
+Environment=HOST=100.103.192.66
+Environment=PORT=8001
 Environment=NODE_ENV=production
 
 [Install]

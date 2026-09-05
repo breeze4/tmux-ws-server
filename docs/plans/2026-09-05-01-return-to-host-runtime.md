@@ -138,20 +138,20 @@ In the `beebaby-infra` repository, complete these steps:
 
 In this repository, complete these steps:
 
-- [ ] Add a `HOST` environment variable to `server/src/index.ts` that selects
+- [x] Add a `HOST` environment variable to `server/src/index.ts` that selects
       the listen address, default `0.0.0.0`.
-- [ ] Update `deploy/beebaby-admin.service` to set `PORT=8001`,
+- [x] Update `deploy/beebaby-admin.service` to set `PORT=8001`,
       `HOST=100.103.192.66`, and `NODE_ENV=production`, and to start after
       `network-online.target`.
-- [ ] Delete `deploy/remote-bootstrap.sh`, `Dockerfile`, and
+- [x] Delete `deploy/remote-bootstrap.sh`, `Dockerfile`, and
       `compose.beebaby.yaml`.
-- [ ] Delete `.woodpecker/publish.yaml`. Make `.woodpecker/deploy.yaml` depend
+- [x] Delete `.woodpecker/publish.yaml`. Make `.woodpecker/deploy.yaml` depend
       on `check` and call
       `deploy beebaby-admin breeze4/tmux-ws-server COMMIT source deploy`.
-- [ ] Rewrite `docs/deployment.md` for the host runtime, including the manual
+- [x] Rewrite `docs/deployment.md` for the host runtime, including the manual
       deploy command and the rollback command.
-- [ ] Update the deployment section of `CLAUDE.md`.
-- [ ] Run `bash scripts/ci-gates.sh`.
+- [x] Update the deployment section of `CLAUDE.md`.
+- [x] Run `bash scripts/ci-gates.sh`.
 
 ### Phase 4: cut over through the deployment command
 

@@ -3,7 +3,7 @@ when:
     branch: main
 
 depends_on:
-  - publish
+  - check
 
 steps:
   deploy:
@@ -16,4 +16,4 @@ steps:
       - install -m 0700 -d /root/.ssh
       - printf '%s\n' "$BEEBABY_DEPLOY_KEY" > /root/.ssh/id_ed25519
       - chmod 0600 /root/.ssh/id_ed25519
-      - ssh -o StrictHostKeyChecking=accept-new -i /root/.ssh/id_ed25519 beeadmin@100.103.192.66 "deploy beebaby-admin breeze4/tmux-ws-server ${CI_COMMIT_SHA} ghcr.io/breeze4/tmux-ws-server:${CI_COMMIT_SHA} deploy"
+      - ssh -o StrictHostKeyChecking=accept-new -i /root/.ssh/id_ed25519 beeadmin@100.103.192.66 "deploy beebaby-admin breeze4/tmux-ws-server ${CI_COMMIT_SHA} source deploy"

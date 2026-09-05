@@ -157,28 +157,28 @@ In this repository, complete these steps:
 
 After phases 2 and 3 are on the host, complete these steps:
 
-- [ ] Move the stale tree aside: `mv ~/dev/beebaby-admin ~/dev/beebaby-admin.stale`.
+- [x] Move the stale tree aside: `mv ~/dev/beebaby-admin ~/dev/beebaby-admin.stale`.
       The running unit keeps its open directory, and the deployment clones a
       fresh checkout at that path.
-- [ ] Push to `main` and confirm that the Woodpecker pipeline deploys the head
+- [x] Push to `main` and confirm that the Woodpecker pipeline deploys the head
       commit. The deployment command reads the commit from GitHub, so the push
       comes first.
-- [ ] Run the deployment command by hand once for the same commit and confirm
+- [x] Run the deployment command by hand once for the same commit and confirm
       that it reports `deployed`. That proves the manual path.
-- [ ] Read `active.env` and confirm the commit.
-- [ ] Reboot BeeBaby. Confirm that the unit is active, that the health
+- [x] Read `active.env` and confirm the commit.
+- [x] Reboot BeeBaby. Confirm that the unit is active, that the health
       endpoint answers `200`, and that a new session runs a host shell.
 
 ### Phase 5: cleanup after the reboot test
 
 After the reboot test passes, complete these steps:
 
-- [ ] Delete `/srv/beebaby/secrets/deploy-env/beebaby-admin.env`.
-- [ ] Delete `/srv/beebaby/stacks/beebaby-admin`.
-- [ ] Delete `~/dev/beebaby-admin.stale`.
-- [ ] Remove the container entries from
+- [x] Delete `/srv/beebaby/secrets/deploy-env/beebaby-admin.env`.
+- [x] Delete `/srv/beebaby/stacks/beebaby-admin`.
+- [x] Delete `~/dev/beebaby-admin.stale`.
+- [x] Remove the container entries from
       `/srv/beebaby/deployments/beebaby-admin/history.log`.
-- [ ] Append the lessons from this work to `docs/lessons.md`.
+- [x] Append the lessons from this work to `docs/lessons.md`.
 
 ## Rollback
 

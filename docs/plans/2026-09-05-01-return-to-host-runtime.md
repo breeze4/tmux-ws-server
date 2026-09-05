@@ -96,19 +96,19 @@ cutover tests fake `runuser` today.
 
 On BeeBaby, as beeadmin, complete these steps in order:
 
-- [ ] Stop and remove the admin container stack:
+- [x] Stop and remove the admin container stack:
       `docker compose --project-name beebaby-beebaby-admin down`.
-- [ ] Confirm that no process holds `/tmp/tmux-1000/default` and remove the
+- [x] Confirm that no process holds `/tmp/tmux-1000/default` and remove the
       stale socket file if one remains.
-- [ ] In `beebaby-infra`, remove the `:8001` block from `caddy/Caddyfile` and
+- [x] In `beebaby-infra`, remove the `:8001` block from `caddy/Caddyfile` and
       split the `8000-8013` publish in `compose/edge.yaml` into `8000` and
       `8002-8013`.
-- [ ] Run `scripts/ci-gates.sh`, then `scripts/sync-to-host.sh`, then apply
+- [x] Run `scripts/ci-gates.sh`, then `scripts/sync-to-host.sh`, then apply
       the edge stack with the environment the running Caddy container records
       in its Compose labels.
-- [ ] Confirm that nothing listens on port 8001.
-- [ ] Start the retired unit: `systemctl --user enable --now beebaby-admin`.
-- [ ] Open `http://beebaby.tailc65f2f.ts.net:8001`, create a session, and
+- [x] Confirm that nothing listens on port 8001.
+- [x] Start the retired unit: `systemctl --user enable --now beebaby-admin`.
+- [x] Open `http://beebaby.tailc65f2f.ts.net:8001`, create a session, and
       confirm from inside it that `hostname` prints the host name and
       `which claude` prints a path.
 

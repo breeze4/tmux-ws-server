@@ -2,9 +2,7 @@ when:
   - event: [push, pull_request]
 
 steps:
-  beebaby-admin-gates:
-    image: node:22.17.1-bookworm-slim@sha256:2fa754a9ba4d7adbd2a51d182eaabbe355c82b673624035a38c0d42b08724854
+  check:
+    image: ghcr.io/breeze4/beebaby-ci@sha256:01586a4e6ea287b966ed9603a7eefd632fadb5a180339b6a76b5748c493bd52b
     commands:
-      - apt-get update && apt-get install --yes --no-install-recommends g++ make python3 && rm -rf /var/lib/apt/lists/*
-      - corepack enable
-      - bash scripts/ci-gates.sh
+      - bash scripts/ci-gates.sh all

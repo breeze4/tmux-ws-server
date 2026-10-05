@@ -1,6 +1,10 @@
 when:
   - event: [push, pull_request]
 
+# Uses no secret, so an agent with location=cloud can run it.
+labels:
+  location: cloud
+
 steps:
   check:
     image: ghcr.io/breeze4/beebaby-ci@sha256:01586a4e6ea287b966ed9603a7eefd632fadb5a180339b6a76b5748c493bd52b

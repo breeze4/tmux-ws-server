@@ -1,5 +1,7 @@
 when:
-  - event: [push, pull_request]
+  - event: pull_request
+  - event: push
+    branch: main
 
 # Uses no secret, so an agent with location=cloud can run it.
 labels:

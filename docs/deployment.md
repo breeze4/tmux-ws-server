@@ -8,18 +8,48 @@ BeeBaby Admin runs on the BeeBaby host as the `beeadmin` user. The
 
 When you push a commit to `main`, Woodpecker runs these workflows:
 
-1. `.woodpecker/check.yaml` runs `bash scripts/ci-gates.sh`.
+1. `.woodpecker/check.yaml` runs `bash scripts/ci-gates.sh all`.
 2. `.woodpecker/deploy.yaml` connects to BeeBaby and sends the restricted
    deployment command with the commit SHA and the `source` marker.
 
-A pull request runs only the check workflow. Deployment credentials are not
+A pull request runs only the check workflow. Deployment credentials aren't
 available to pull request pipelines.
+
+The check workflow, `scripts/ci-gates.sh`, `scripts/ci-local.sh`, and
+`scripts/check-ghcr-token.py` come from the BeeBaby CI template. The project
+builds no image, so the template was stamped with
+`scripts/stamp-ci.py tmux-ws-server . --no-image` from `beebaby-infra`. That
+command stamps no deploy workflow, so `.woodpecker/deploy.yaml` keeps the host
+deploy command.
+
+The gate has two parts:
+
+- `workflows` runs `scripts/check-ghcr-token.py`, which fails when a
+  non-plugin step reads `ghcr_token`.
+- `project` installs the dependencies, runs the tests when `tmux` is
+  installed, and builds the server and client.
 
 Before you push, run the local gate:
 
 ```sh
-bash scripts/ci-gates.sh
+bash scripts/ci-gates.sh all
 ```
+
+To run the gate in the same CI image that Woodpecker uses, run
+`sh scripts/ci-local.sh all`.
+
+## Secrets
+
+The `secret-names.yaml` file at the repository root lists the secret names that
+the project uses, never a value. The list holds no entries. BeeBaby Admin is a
+host project with no deploy or runtime environment file, and the unit sets only
+settings: `HOST`, `PORT`, and `NODE_ENV`. The server also reads `TMUX_SOCKET`,
+which is a setting.
+
+`beebaby-deploy` writes a runtime environment file from the store only for a
+container project that declares `runtime_env: store`. A host project record
+can't declare `runtime_env`, so a secret for this service needs a change to
+`beebaby-deploy` before the unit can read it.
 
 The deployment command fetches the commit into
 `/home/beeadmin/dev/beebaby-admin`, installs dependencies, builds the app,

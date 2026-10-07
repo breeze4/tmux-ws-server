@@ -14,3 +14,8 @@
 - **A container cannot serve a host-access tool.** A shared tmux socket lets a container client start the tmux server inside the container.
 - **A failsafe must not depend on the platform that it repairs.** The Admin service runs as a host user unit and binds its Tailscale address directly.
 - **Host builds need the pinned package-manager shim on `PATH`.** Corepack must enable the pinned pnpm shim before a package script invokes pnpm again.
+
+## 2026-10-07 — CI template and secrets list
+
+- **The no-image CI stamp doesn't cover a host project.** `stamp-ci.py --no-image` stamps the check workflow only and tells you to delete `deploy.yaml`. A host project deploys with the `source` marker, so keep its deploy workflow.
+- **Confirm an empty adopt draft from the deploy path.** `cos secrets adopt` reads only deploy and runtime env files. A host project has neither, and its record can't declare `runtime_env`, so its list holds no entries.

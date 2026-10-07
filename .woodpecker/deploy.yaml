@@ -5,7 +5,11 @@ when:
 depends_on:
   - check
 
-# Uses beebaby_deploy_key, so only the agent on beebaby runs this workflow.
+# BeeBaby Admin is a host project: it builds no image, so the deploy command
+# passes the source marker in the image position and waits for check only.
+# scripts/stamp-ci.py --no-image stamps no deploy workflow, so this file keeps
+# the host deploy command. Only the agent on beebaby runs a deploy workflow,
+# so the deploy key never reaches an agent off the host.
 labels:
   location: beebaby
 

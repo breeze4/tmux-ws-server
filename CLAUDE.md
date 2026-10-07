@@ -24,7 +24,8 @@ BeeBaby Admin runs on the BeeBaby host through the `beeadmin` user unit
 
 A push to `main` runs the check and deploy workflows in `.woodpecker/`. The
 deploy workflow sends the host deployment command with the `source` marker.
-Before you push, run `bash scripts/ci-gates.sh`.
+Before you push, run `bash scripts/ci-gates.sh all`. The project lists its
+secret names in `secret-names.yaml`.
 
 To deploy a commit manually, run:
 
